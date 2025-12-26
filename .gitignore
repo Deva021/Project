@@ -38,9 +38,18 @@ target/
 .mvn/
 mvn-wrapper.jar
 mvn-wrapper.properties
+application.properties
 
 # Tomcat
 tomcat-*/
+apache-tomcat-*/
+
+# Agent Memory
+GEMINI.md
+apache-tomcat-*/
+
+# Agent Memory
+GEMINI.md
 catalina.out
 catalina.log
 
