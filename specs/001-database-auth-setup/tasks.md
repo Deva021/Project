@@ -6,11 +6,11 @@
 - **Description:** Apply the SQL schema from `data-model.md` to the Supabase instance, creating tables for tenants, memberships, conversations, and messages.
 - **Acceptance Criteria:**
 
-  - [ ] `tenants` table created with correct columns
-  - [ ] `tenant_memberships` table created with correct columns and FKs
-  - [ ] `conversations` table created with correct columns and FKs
-  - [ ] `messages` table created with correct columns and FKs
-  - [ ] RLS enabled on all 4 tables
+  - [x] `tenants` table created with correct columns
+  - [x] `tenant_memberships` table created with correct columns and FKs
+  - [x] `conversations` table created with correct columns and FKs
+  - [x] `messages` table created with correct columns and FKs
+  - [x] RLS enabled on all 4 tables
 
 - **Feature:** RLS Policy Implementation
 - **Type:** `task`
@@ -18,11 +18,11 @@
 - **Description:** Implement the `is_member_of_tenant` helper function and apply Row-Level Security policies to enforce strict tenant isolation.
 - **Acceptance Criteria:**
 
-  - [ ] `is_member_of_tenant` function exists and works
-  - [ ] Policy: Users can only view their own tenants
-  - [ ] Policy: Users can only view memberships for their tenants
-  - [ ] Policy: Users can only access conversations/messages for their tenants
-  - [ ] Manual verification confirms cross-tenant access is blocked
+  - [x] `is_member_of_tenant` function exists and works
+  - [x] Policy: Users can only view their own tenants
+  - [x] Policy: Users can only view memberships for their tenants
+  - [x] Policy: Users can only access conversations/messages for their tenants
+  - [x] Manual verification confirms cross-tenant access is blocked
 
 - **Feature:** Backend Auth API
 - **Type:** `task`
