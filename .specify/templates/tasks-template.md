@@ -1,0 +1,7 @@
+- **Feature:** [Feature Name]
+- **Type:** `[epic | story | task | bug]`
+- **Principle:** `[P1-Server | P2-Tenant | P3-Concurrency | P4-Performance | P5-Spec]`
+- **Description:** [A concise, one-line description of the work to be done.]
+- **Acceptance Criteria:**
+  - [ ] Criterion 1
+  - [ ] Criterion 2
