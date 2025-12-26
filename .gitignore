@@ -1,6 +1,6 @@
 # IDE and Editor
 .gemini
-.specify
+
 .vscode/
 .idea/
 *.iml
