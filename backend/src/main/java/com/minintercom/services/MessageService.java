@@ -1,0 +1,82 @@
+package com.minintercom.services;
+
+import com.minintercom.dto.Message;
+import com.minintercom.common.DatabaseService;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Service for managing chat messages.
+ * Provides methods for sending messages and retrieving message history.
+ */
+public class MessageService {
+
+    /**
+     * Sends a message in a conversation.
+     * 
+     * @param conversationId The UUID of the conversation.
+     * @param senderId       The UUID of the sender (null for visitors).
+     * @param senderType     The type of sender ('visitor' or 'agent').
+     * @param text           The message content.
+     * @return The created Message object.
+     */
+    public Message sendMessage(UUID conversationId, UUID senderId, String senderType, String text) {
+        String sql = "INSERT INTO messages (conversation_id, sender_id, sender_type, text) VALUES (?, ?, ?, ?) RETURNING id, conversation_id, sender_id, sender_type, text, created_at";
+        try (Connection conn = DatabaseService.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setObject(1, conversationId);
+            pstmt.setObject(2, senderId);
+            pstmt.setString(3, senderType);
+            pstmt.setString(4, text);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return new Message(
+                            (UUID) rs.getObject("id"),
+                            (UUID) rs.getObject("conversation_id"),
+                            (UUID) rs.getObject("sender_id"),
+                            rs.getString("sender_type"),
+                            rs.getString("text"),
+                            rs.getTimestamp("created_at"));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * Retrieves the message history for a conversation.
+     * 
+     * @param conversationId The UUID of the conversation.
+     * @return A list of messages.
+     */
+    public List<Message> getMessageHistory(UUID conversationId) {
+        List<Message> messages = new ArrayList<>();
+        String sql = "SELECT id, conversation_id, sender_id, sender_type, text, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at ASC";
+        try (Connection conn = DatabaseService.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setObject(1, conversationId);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    messages.add(new Message(
+                            (UUID) rs.getObject("id"),
+                            (UUID) rs.getObject("conversation_id"),
+                            (UUID) rs.getObject("sender_id"),
+                            rs.getString("sender_type"),
+                            rs.getString("text"),
+                            rs.getTimestamp("created_at")));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return messages;
+    }
+}
