@@ -1,0 +1,72 @@
+openapi: 3.0.0
+info:
+  title: Backend Core Services - Internal API
+  version: 1.0.0
+  description: |-
+    Internal Java service contracts for the Backend Core Services feature.
+    This is not a REST API, but a definition of the Java interfaces.
+
+paths: {} # Not a REST API
+
+components:
+  schemas:
+    # Service Interfaces
+    DatabaseService:
+      type: object
+      description: Interface for managing database connections and executing queries.
+      properties:
+        getConnection:
+          description: "Returns a JDBC connection from the pool."
+        # Higher-level methods will be defined that use the TenantContext
+        findUserById:
+          description: "Finds a user by ID, scoped to the current tenant."
+          parameters:
+            - name: "userId"
+              type: "UUID"
+          returns:
+            type: "User"
+
+    JwtService:
+      type: object
+      description: Interface for handling JWT operations.
+      properties:
+        validateToken:
+          description: "Validates a JWT string. Returns the decoded token on success."
+          parameters:
+            - name: "token"
+              type: "String"
+          returns:
+            type: "DecodedJWT"
+        getTenantId:
+          description: "Extracts the tenant ID from a decoded JWT."
+          parameters:
+            - name: "decodedJWT"
+              type: "DecodedJWT"
+          returns:
+            type: "UUID"
+
+    TenantContext:
+      type: object
+      description: A ThreadLocal holder for the current tenant ID.
+      properties:
+        setCurrentTenant:
+          description: "Sets the tenant ID for the current request thread."
+          parameters:
+            - name: "tenantId"
+              type: "UUID"
+        getCurrentTenant:
+          description: "Retrieves the tenant ID for the current request thread."
+          returns:
+            type: "UUID"
+        clear:
+          description: "Clears the tenant ID from the current request thread."
+
+    # Data Transfer Objects
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
