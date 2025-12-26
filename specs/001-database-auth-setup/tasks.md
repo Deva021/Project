@@ -30,10 +30,10 @@
 - **Description:** Create Next.js API routes for `signup`, `signin`, and `signout` using the Supabase client.
 - **Acceptance Criteria:**
 
-  - [ ] `POST /api/auth/signup` creates a user and tenant
-  - [ ] `POST /api/auth/signin` returns a valid session
-  - [ ] `POST /api/auth/signout` clears the session
-  - [ ] API handles errors (invalid credentials, duplicate email) gracefully
+  - [x] `POST /api/auth/signup` creates a user and tenant
+  - [x] `POST /api/auth/signin` returns a valid session
+  - [x] `POST /api/auth/signout` clears the session
+  - [x] API handles errors (invalid credentials, duplicate email) gracefully
 
 - **Feature:** Frontend UI Components
 - **Type:** `task`
@@ -41,10 +41,10 @@
 - **Description:** Build the Signup and Sign-in pages using Server Components for layout and Client Components for interactive forms.
 - **Acceptance Criteria:**
 
-  - [ ] `/login` page renders with email/password form
-  - [ ] `/signup` page renders with email/password/tenant-name form
-  - [ ] Forms submit to the backend API
-  - [ ] Loading states and error messages are displayed
+  - [x] `/login` page renders with email/password form
+  - [x] `/signup` page renders with email/password/tenant-name form
+  - [x] Forms submit to the backend API
+  - [x] Loading states and error messages are displayed
 
 - **Feature:** Session Management
 - **Type:** `task`
@@ -52,14 +52,14 @@
 - **Description:** Implement client-side session context and middleware to protect routes.
 - **Acceptance Criteria:**
 
-  - [ ] Middleware redirects unauthenticated users from protected routes (e.g., `/dashboard`)
-  - [ ] Auth state is accessible via React Context or Hook
-  - [ ] Session persists across page reloads
+  - [x] Middleware redirects unauthenticated users from protected routes (e.g., `/dashboard`)
+  - [x] Auth state is accessible via React Context or Hook
+  - [x] Session persists across page reloads
 
 - **Feature:** Integration Testing
 - **Type:** `task`
 - **Principle:** `P5-Spec`
 - **Description:** Verify the end-to-end authentication flow and tenant isolation security.
 - **Acceptance Criteria:**
-  - [ ] Full flow: Signup -> Dashboard -> Logout -> Login works
-  - [ ] Verified: User A cannot see User B's tenant data
+  - [x] Full flow: Signup -> Dashboard -> Logout -> Login works
+  - [x] Verified: User A cannot see User B's tenant data
