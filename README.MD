@@ -507,14 +507,14 @@ Simple two-role system: **Visitor** (no auth) and **Agent** (requires auth).
 
 #### System Requirements
 
-| Tool    | Version   | Check Command           | Installation                                    |
-| ------- | --------- | ----------------------- | ----------------------------------------------- |
-| Java    | 21 (LTS)  | `java --version`        | [adoptium.net](https://adoptium.net/)           |
-| Maven   | 3.8+      | `mvn --version`         | [maven.apache.org](https://maven.apache.org/)   |
-| Tomcat  | 10+       | Check install directory | [tomcat.apache.org](https://tomcat.apache.org/) |
-| Node.js | 18+ (LTS) | `node --version`        | [nodejs.org](https://nodejs.org/)               |
-| npm     | 9+        | `npm --version`         | Included with Node.js                           |
-| Git     | 2.0+      | `git --version`         | [git-scm.com](https://git-scm.com/)             |
+| Tool    | Version   | Check Command         | Installation                                    |
+| ------- | --------- | --------------------- | ----------------------------------------------- |
+| Java    | 21 (LTS)  | `java --version`      | [adoptium.net](https://adoptium.net/)           |
+| Maven   | 3.8+      | `mvn --version`       | [maven.apache.org](https://maven.apache.org/)   |
+| Tomcat  | 9.0+      | `catalina.sh version` | [tomcat.apache.org](https://tomcat.apache.org/) |
+| Node.js | 18+ (LTS) | `node --version`      | [nodejs.org](https://nodejs.org/)               |
+| npm     | 9+        | `npm --version`       | Included with Node.js                           |
+| Git     | 2.0+      | `git --version`       | [git-scm.com](https://git-scm.com/)             |
 
 #### Project Dependencies
 

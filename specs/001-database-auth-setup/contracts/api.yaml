@@ -1,0 +1,73 @@
+openapi: 3.0.0
+info:
+  title: Authentication API
+  version: 1.0.0
+  description: API for user authentication and session management.
+
+paths:
+  /api/auth/signup:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                tenant_name:
+                  type: string
+                  description: The name of the initial tenant to create for the user.
+              required:
+                - email
+                - password
+                - tenant_name
+      responses:
+        '201':
+          description: User and initial tenant created successfully. Returns session.
+        '400':
+          description: Invalid input or user already exists.
+        '500':
+          description: Server error.
+
+  /api/auth/signin:
+    post:
+      summary: Sign in a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: Sign in successful. Returns session.
+        '401':
+          description: Unauthorized, invalid credentials.
+        '500':
+          description: Server error.
+
+  /api/auth/signout:
+    post:
+      summary: Sign out the current user
+      responses:
+        '200':
+          description: Sign out successful.
+        '500':
+          description: Server error.
