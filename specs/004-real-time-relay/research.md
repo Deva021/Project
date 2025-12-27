@@ -1,0 +1,7 @@
+# Research for Real-Time Relay
+
+## 1. Real-Time Layer Component Architecture
+
+- **Decision**: To implement a comprehensive real-time layer utilizing dedicated components: a custom TCP-based Relay Server, a Relay Router for intelligent event distribution, a Relay Client for secure backend integration, and a Poll Queue Service for efficient, scalable event delivery.
+- **Rationale**: This architecture directly addresses the feature's core objective of enabling real-time communication by providing a robust, scalable, and tenant-aware event delivery mechanism. The separation of concerns among the components (server, routing, client, queuing) promotes modularity, testability, and maintainability. It aligns with the explicit requirements laid out in the initial feature description.
+- **Alternatives considered**: While WebSockets are a standard for real-time communication, the explicit mention of a "TCP Relay" and "Poll Queue Service" in the feature description guided the design towards a custom TCP-based real-time layer. This approach offers fine-grained control over the protocol and potentially optimized performance for specific use cases, alongside long-polling as a fallback/alternative for client integration. Standard message queues (e.g., Kafka, RabbitMQ) were implicitly considered but a custom solution was chosen due to the explicit requirements for a Relay Server and Poll Queue Service, suggesting a preference for more control over the real-time event lifecycle within the application's specific context.

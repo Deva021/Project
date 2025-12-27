@@ -1,0 +1,145 @@
+openapi: 3.0.3
+info:
+  title: Real-Time Layer Poll Queue API
+  version: 1.0.0
+  description: API for long-polling real-time events from the Poll Queue Service.
+
+paths:
+  /api/realtime/poll:
+    get:
+      summary: Long-poll for real-time events
+      description: Allows clients to long-poll for events specific to a tenant and/or conversation. The connection will be held open until an event is available or the timeout is reached.
+      parameters:
+        - name: tenantId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The UUID of the tenant to fetch events for.
+        - name: conversationId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Optional. The UUID of the conversation to fetch events for.
+        - name: timeoutSeconds
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 30
+          description: The maximum number of seconds to hold the connection open if no events are available.
+      responses:
+        '200':
+          description: A list of real-time events.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RealtimeEvent'
+        '204':
+          description: No new events available within the timeout period.
+        '400':
+          description: Invalid request parameters.
+
+components:
+  schemas:
+    RealtimeEvent:
+      type: object
+      discriminator:
+        propertyName: type
+      properties:
+        type:
+          type: string
+          description: The type of the real-time event.
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp when the event occurred.
+        tenantId:
+          type: string
+          format: uuid
+          description: The tenant ID associated with the event.
+      required:
+        - type
+        - timestamp
+        - tenantId
+      oneOf:
+        - $ref: '#/components/schemas/NewMessageEvent'
+        - $ref: '#/components/schemas/AgentTypingEvent'
+        - $ref: '#/components/schemas/ConversationStatusUpdateEvent'
+
+    NewMessageEvent:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/RealtimeEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [new_message]
+            conversationId:
+              type: string
+              format: uuid
+            messageId:
+              type: string
+              format: uuid
+            senderId:
+              type: string
+              format: uuid
+              nullable: true
+            senderType:
+              type: string
+              enum: [VISITOR, AGENT]
+            text:
+              type: string
+          required:
+            - conversationId
+            - messageId
+            - senderType
+            - text
+
+    AgentTypingEvent:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/RealtimeEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [agent_typing]
+            conversationId:
+              type: string
+              format: uuid
+            agentId:
+              type: string
+              format: uuid
+            isTyping:
+              type: boolean
+          required:
+            - conversationId
+            - agentId
+            - isTyping
+
+    ConversationStatusUpdateEvent:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/RealtimeEvent'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [conversation_status_update]
+            conversationId:
+              type: string
+              format: uuid
+            newStatus:
+              type: string
+              enum: [OPEN, ACTIVE, PENDING, CLOSED]
+          required:
+            - conversationId
+            - newStatus

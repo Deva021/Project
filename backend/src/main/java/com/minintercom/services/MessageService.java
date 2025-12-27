@@ -34,19 +34,47 @@ public class MessageService {
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    return new Message(
+                    Message message = new Message(
                             (UUID) rs.getObject("id"),
                             (UUID) rs.getObject("conversation_id"),
                             (UUID) rs.getObject("sender_id"),
                             rs.getString("sender_type"),
                             rs.getString("text"),
                             rs.getTimestamp("created_at"));
+
+                    // Publish real-time event
+                    publishNewMessageEvent(message);
+
+                    return message;
                 }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return null;
+    }
+
+    private void publishNewMessageEvent(Message message) {
+        String sql = "SELECT tenant_id FROM conversations WHERE id = ?";
+        try (Connection conn = DatabaseService.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setObject(1, message.getConversationId());
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    UUID tenantId = (UUID) rs.getObject("tenant_id");
+                    com.minintercom.realtime.events.NewMessageEvent event = new com.minintercom.realtime.events.NewMessageEvent(
+                            tenantId,
+                            message.getConversationId(),
+                            message.getId(),
+                            message.getSenderId(),
+                            message.getSenderType(),
+                            message.getText());
+                    com.minintercom.realtime.client.RealtimeClient.getInstance().publish(event);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     /**

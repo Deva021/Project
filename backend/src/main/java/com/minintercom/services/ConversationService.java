@@ -73,14 +73,23 @@ public class ConversationService {
      * @param status         The new status.
      */
     public void updateConversationStatus(UUID conversationId, String status) {
-        String sql = "UPDATE conversations SET status = ? WHERE id = ?";
+        String sql = "UPDATE conversations SET status = ? WHERE id = ? RETURNING tenant_id";
         try (Connection conn = DatabaseService.getConnection();
                 PreparedStatement pstmt = DatabaseService.prepareTenantStatement(conn, sql)) {
 
             pstmt.setString(1, status);
             pstmt.setObject(2, conversationId);
 
-            pstmt.executeUpdate();
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    UUID tenantId = (UUID) rs.getObject("tenant_id");
+                    com.minintercom.realtime.events.ConversationStatusUpdateEvent event = new com.minintercom.realtime.events.ConversationStatusUpdateEvent(
+                            tenantId,
+                            conversationId,
+                            status);
+                    com.minintercom.realtime.client.RealtimeClient.getInstance().publish(event);
+                }
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
