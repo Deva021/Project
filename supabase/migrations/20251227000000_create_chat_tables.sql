@@ -27,7 +27,7 @@ FOR SELECT
 TO authenticated
 USING (
     tenant_id IN (
-        SELECT tenant_id FROM public.tenants_users WHERE user_id = auth.uid()
+        SELECT tenant_id FROM public.tenant_memberships WHERE user_id = auth.uid()
     )
 );
 
@@ -37,7 +37,7 @@ FOR UPDATE
 TO authenticated
 USING (
     tenant_id IN (
-        SELECT tenant_id FROM public.tenants_users WHERE user_id = auth.uid()
+        SELECT tenant_id FROM public.tenant_memberships WHERE user_id = auth.uid()
     )
 );
 
@@ -49,7 +49,7 @@ TO authenticated
 USING (
     conversation_id IN (
         SELECT id FROM public.conversations WHERE tenant_id IN (
-            SELECT tenant_id FROM public.tenants_users WHERE user_id = auth.uid()
+            SELECT tenant_id FROM public.tenant_memberships WHERE user_id = auth.uid()
         )
     )
 );
@@ -61,7 +61,7 @@ TO authenticated
 WITH CHECK (
     conversation_id IN (
         SELECT id FROM public.conversations WHERE tenant_id IN (
-            SELECT tenant_id FROM public.tenants_users WHERE user_id = auth.uid()
+            SELECT tenant_id FROM public.tenant_memberships WHERE user_id = auth.uid()
         )
     )
 );
