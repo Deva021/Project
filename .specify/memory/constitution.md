@@ -94,7 +94,7 @@ ON public.messages
 FOR SELECT
 USING (
   auth.uid() IN (
-    SELECT user_id FROM tenants_users WHERE tenant_id = messages.tenant_id
+    SELECT user_id FROM tenant_memberships WHERE tenant_id = messages.tenant_id
   )
 );
 ```
