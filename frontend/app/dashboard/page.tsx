@@ -1,52 +1,52 @@
-import { createClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
+'use client';
 
-export default async function DashboardPage() {
-  const supabase = await createClient()
+import { useAuth } from '../../components/AuthContext';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+export default function DashboardPage() {
+  const { user, isLoading, logout } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
+        <p className="text-center text-gray-900">Loading user data...</p>
+      </div>
+    );
+  }
 
   if (!user) {
-    return redirect('/login')
+    // Should be redirected by useEffect, but return null for safety
+    return null;
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-4xl bg-white p-8 rounded-xl shadow-lg border border-gray-100">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <form action="/api/auth/signout" method="POST">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
-            >
-              Sign out
-            </button>
-          </form>
-        </div>
-        
-        <div className="bg-indigo-50 p-6 rounded-lg border border-indigo-100">
-          <h2 className="text-xl font-semibold text-indigo-900 mb-2">Welcome, {user.email}!</h2>
-          <p className="text-indigo-700">
-            You are successfully authenticated. This is a protected route.
-          </p>
-        </div>
+    <div className="flex min-h-full flex-1 flex-col items-center justify-center px-6 py-12 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-sm">
+        <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
+          Welcome to your Dashboard, {user.email}!
+        </h2>
+      </div>
 
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="p-6 border border-gray-200 rounded-lg">
-            <h3 className="font-bold text-gray-900 mb-2">User ID</h3>
-            <code className="text-sm bg-gray-100 p-1 rounded">{user.id}</code>
-          </div>
-          <div className="p-6 border border-gray-200 rounded-lg">
-            <h3 className="font-bold text-gray-900 mb-2">Auth Status</h3>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              Authenticated
-            </span>
-          </div>
-        </div>
+      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+        <p className="text-center text-gray-700 mb-6">
+          You are successfully logged in. This is your secure dashboard.
+        </p>
+        <button
+          onClick={logout}
+          disabled={isLoading}
+          className="flex w-full justify-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+        >
+          {isLoading ? 'Logging out...' : 'Logout'}
+        </button>
       </div>
     </div>
-  )
+  );
 }
