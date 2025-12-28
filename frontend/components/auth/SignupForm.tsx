@@ -6,10 +6,11 @@ export default function SignupForm({ error: initialError }: { error?: string | n
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(initialError || null)
 
-  const handleSubmit = async (_e: React.FormEvent<HTMLFormElement>) => {
-    setLoading(true)
-    setError(null)
-  }
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+  };
 
   return (
     <div className="mt-8 space-y-6">
