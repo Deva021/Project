@@ -12,6 +12,7 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Servlet for long-polling real-time events.
@@ -39,13 +40,13 @@ public class RealtimeServlet extends HttpServlet {
         if (conversationIdStr != null && !conversationIdStr.isEmpty()) {
             try {
                 UUID conversationId = UUID.fromString(conversationIdStr);
-                events = pollQueueService.poll(tenantId, conversationId, timeoutMs);
+                events = pollQueueService.poll(tenantId, conversationId, timeoutMs, TimeUnit.MILLISECONDS);
             } catch (IllegalArgumentException e) {
                 resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid conversation_id format");
                 return;
             }
         } else {
-            events = pollQueueService.pollTenant(tenantId, timeoutMs);
+            events = pollQueueService.pollTenant(tenantId, timeoutMs, TimeUnit.MILLISECONDS);
         }
 
         resp.setContentType("application/json");
