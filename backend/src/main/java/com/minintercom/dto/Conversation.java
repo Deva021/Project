@@ -1,5 +1,7 @@
 package com.minintercom.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.UUID;
 import java.sql.Timestamp;
 
@@ -8,17 +10,24 @@ import java.sql.Timestamp;
  */
 public class Conversation {
     private UUID id;
+    @JsonProperty("tenant_id")
     private UUID tenantId;
-    private String status;
+    private String title;
     private Timestamp createdAt;
 
     public Conversation() {
     }
 
-    public Conversation(UUID id, UUID tenantId, String status, Timestamp createdAt) {
+    public Conversation(UUID id, UUID tenantId, String title) {
         this.id = id;
         this.tenantId = tenantId;
-        this.status = status;
+        this.title = title;
+    }
+
+    public Conversation(UUID id, UUID tenantId, String title, Timestamp createdAt) {
+        this.id = id;
+        this.tenantId = tenantId;
+        this.title = title;
         this.createdAt = createdAt;
     }
 
@@ -38,12 +47,12 @@ public class Conversation {
         this.tenantId = tenantId;
     }
 
-    public String getStatus() {
-        return status;
+    public String getTitle() {
+        return title;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setTitle(String title) {
+        this.title = title;
     }
 
     public Timestamp getCreatedAt() {

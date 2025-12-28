@@ -98,9 +98,10 @@ export async function POST(request: Request) {
     return NextResponse.redirect(new URL('/dashboard', request.url), {
       status: 303,
     })
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
     return NextResponse.redirect(
-      new URL(`/signup?error=${encodeURIComponent(err.message || 'An unexpected error occurred')}`, request.url),
+      new URL(`/signup?error=${encodeURIComponent(errorMessage)}`, request.url),
       { status: 303 }
     )
   }
