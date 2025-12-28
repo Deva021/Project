@@ -11,6 +11,59 @@
   </filter>
   <filter-mapping>
     <filter-name>AuthFilter</filter-name>
-    <url-pattern>/api/*</url-pattern>
+    <url-pattern>/api/conversations/*</url-pattern>
+    <url-pattern>/api/messages/*</url-pattern>
+    <url-pattern>/api/poll</url-pattern>
   </filter-mapping>
+
+  <!-- Health Servlet -->
+  <servlet>
+    <servlet-name>HealthServlet</servlet-name>
+    <servlet-class>com.minintercom.servlets.HealthServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>HealthServlet</servlet-name>
+    <url-pattern>/api/health</url-pattern>
+  </servlet-mapping>
+
+  <!-- Conversations Servlet -->
+  <servlet>
+    <servlet-name>ConversationsServlet</servlet-name>
+    <servlet-class>com.minintercom.servlets.ConversationsServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ConversationsServlet</servlet-name>
+    <url-pattern>/api/conversations/*</url-pattern>
+  </servlet-mapping>
+
+  <!-- Messages Servlet -->
+  <servlet>
+    <servlet-name>MessagesServlet</servlet-name>
+    <servlet-class>com.minintercom.servlets.MessagesServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>MessagesServlet</servlet-name>
+    <url-pattern>/api/messages/*</url-pattern>
+  </servlet-mapping>
+
+  <!-- Poll Servlet -->
+  <servlet>
+    <servlet-name>PollServlet</servlet-name>
+    <servlet-class>com.minintercom.servlets.PollServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>PollServlet</servlet-name>
+    <url-pattern>/api/poll</url-pattern>
+  </servlet-mapping>
+
+  <!-- Chat Servlet -->
+  <servlet>
+    <servlet-name>ChatServlet</servlet-name>
+    <servlet-class>com.minintercom.servlets.ChatServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>ChatServlet</servlet-name>
+    <url-pattern>/api/chat/*</url-pattern>
+  </servlet-mapping>
+
 </web-app>
