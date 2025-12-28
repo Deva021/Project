@@ -17,6 +17,14 @@ public class Message {
     public Message() {
     }
 
+    public Message(UUID id, UUID conversationId, UUID senderId, String text) {
+        this.id = id;
+        this.conversationId = conversationId;
+        this.senderId = senderId;
+        this.text = text;
+    }
+
+
     public Message(UUID id, UUID conversationId, UUID senderId, String senderType, String text, Timestamp createdAt) {
         this.id = id;
         this.conversationId = conversationId;

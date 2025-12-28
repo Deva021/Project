@@ -28,12 +28,12 @@ public class PollQueueService {
      * Polls for events for a specific conversation.
      * Blocks until an event is available or the timeout is reached.
      */
-    public List<RealtimeEvent> poll(UUID tenantId, UUID conversationId, long timeoutMs) {
+    public List<RealtimeEvent> poll(UUID tenantId, UUID conversationId, long timeout, TimeUnit unit) {
         PollSubscriber subscriber = new PollSubscriber(tenantId);
         EventRouter.getInstance().subscribe(tenantId, conversationId, subscriber);
 
         try {
-            RealtimeEvent event = subscriber.queue.poll(timeoutMs, TimeUnit.MILLISECONDS);
+            RealtimeEvent event = subscriber.queue.poll(timeout, unit);
             List<RealtimeEvent> events = new ArrayList<>();
             if (event != null) {
                 events.add(event);
@@ -52,12 +52,12 @@ public class PollQueueService {
     /**
      * Polls for all events within a tenant.
      */
-    public List<RealtimeEvent> pollTenant(UUID tenantId, long timeoutMs) {
+    public List<RealtimeEvent> pollTenant(UUID tenantId, long timeout, TimeUnit unit) {
         PollSubscriber subscriber = new PollSubscriber(tenantId);
         EventRouter.getInstance().subscribeTenant(tenantId, subscriber);
 
         try {
-            RealtimeEvent event = subscriber.queue.poll(timeoutMs, TimeUnit.MILLISECONDS);
+            RealtimeEvent event = subscriber.queue.poll(timeout, unit);
             List<RealtimeEvent> events = new ArrayList<>();
             if (event != null) {
                 events.add(event);

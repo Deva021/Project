@@ -6,6 +6,9 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.InputStream;
+import java.io.IOException;
+import java.util.Properties;
 import java.util.Date;
 import java.util.UUID;
 
@@ -13,8 +16,26 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class JwtServiceTest {
 
-    private static String secret = "your-default-secret-key-change-this-in-production";
-    private static Algorithm algorithm = Algorithm.HMAC256(secret);
+    private static String secret;
+    private static Algorithm algorithm;
+
+    @BeforeAll
+    static void setup() {
+        try (InputStream input = JwtServiceTest.class.getClassLoader().getResourceAsStream("application.properties")) {
+            Properties prop = new Properties();
+            if (input != null) {
+                prop.load(input);
+                secret = prop.getProperty("jwt.secret");
+            }
+            if (secret == null || secret.isEmpty()) {
+                secret = "test-secret-key-for-unit-tests-only"; // Fallback, though it should be in properties
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            secret = "test-secret-key-for-unit-tests-only"; // Fallback in case of error
+        }
+        algorithm = Algorithm.HMAC256(secret);
+    }
 
     @Test
     public void testValidateValidToken() {

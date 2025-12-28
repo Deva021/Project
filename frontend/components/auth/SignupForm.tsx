@@ -6,7 +6,7 @@ export default function SignupForm({ error: initialError }: { error?: string | n
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(initialError || null)
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (_e: React.FormEvent<HTMLFormElement>) => {
     setLoading(true)
     setError(null)
   }

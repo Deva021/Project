@@ -50,7 +50,7 @@ public class RealtimeIntegrationTest {
             }
         }).start();
 
-        List<RealtimeEvent> events = pollService.poll(tenantId, conversationId, 2000);
+        List<RealtimeEvent> events = pollService.poll(tenantId, conversationId, 2000, java.util.concurrent.TimeUnit.MILLISECONDS);
 
         assertNotNull(events);
         assertEquals(1, events.size());
@@ -79,7 +79,7 @@ public class RealtimeIntegrationTest {
             }
         }).start();
 
-        List<RealtimeEvent> events = pollService.poll(tenantB, convA, 500);
+        List<RealtimeEvent> events = pollService.poll(tenantB, convA, 500, java.util.concurrent.TimeUnit.MILLISECONDS);
 
         assertTrue(events.isEmpty(), "Tenant B should not receive events for Tenant A");
     }
@@ -102,7 +102,7 @@ public class RealtimeIntegrationTest {
                 e.printStackTrace();
             }
         }).start();
-        List<RealtimeEvent> events = pollService.poll(tenantId, convB, 500);
+        List<RealtimeEvent> events = pollService.poll(tenantId, convB, 500, java.util.concurrent.TimeUnit.MILLISECONDS);
 
         assertTrue(events.isEmpty(), "Subscribers to Conv B should not receive events for Conv A");
     }

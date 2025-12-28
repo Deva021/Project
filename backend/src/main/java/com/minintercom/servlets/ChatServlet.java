@@ -20,7 +20,6 @@ import java.util.UUID;
 /**
  * Servlet for handling chat-related API requests.
  */
-@WebServlet("/api/conversations/*")
 public class ChatServlet extends HttpServlet {
 
     private final ConversationService conversationService = new ConversationService();
@@ -46,7 +45,12 @@ public class ChatServlet extends HttpServlet {
     }
 
     private void handleListConversations(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        List<Conversation> conversations = conversationService.listConversations();
+        UUID tenantId = (UUID) req.getAttribute("tenantId"); // Assuming AuthFilter sets this
+        if (tenantId == null) {
+            resp.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Tenant ID not found");
+            return;
+        }
+        List<Conversation> conversations = conversationService.getConversationsByTenantId(tenantId);
         resp.setContentType("application/json");
         objectMapper.writeValue(resp.getWriter(), conversations);
     }
@@ -90,19 +94,24 @@ public class ChatServlet extends HttpServlet {
     private void handleCreateConversation(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         Map<String, String> body = objectMapper.readValue(req.getReader(), Map.class);
         String tenantIdStr = body.get("tenant_id");
-        String initialMessage = body.get("message");
+        String title = body.get("title"); // Assuming title is sent
+        String initialMessageContent = body.get("message");
 
-        if (tenantIdStr == null || initialMessage == null) {
+        if (tenantIdStr == null || initialMessageContent == null) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing tenant_id or message");
             return;
         }
 
         try {
             UUID tenantId = UUID.fromString(tenantIdStr);
-            Conversation conversation = conversationService.createConversation(tenantId);
+            Conversation newConversation = new Conversation();
+            newConversation.setTenantId(tenantId);
+            newConversation.setTitle(title);
+
+            Conversation conversation = conversationService.createConversation(newConversation, null); // visitor_name not handled here yet
 
             if (conversation != null) {
-                Message message = messageService.sendMessage(conversation.getId(), null, "visitor", initialMessage);
+                Message message = messageService.sendMessage(conversation.getId(), null, "visitor", initialMessageContent);
 
                 Map<String, Object> result = new HashMap<>();
                 result.put("conversation", conversation);
