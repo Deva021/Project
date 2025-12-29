@@ -212,7 +212,7 @@ mini-intercom/
 frontend/
 ├── src/
 │   ├── app/
-│   │   ├── page.tsx             # Demo landing + embed snippet
+│   │   ├── page.tsx             # Main landing page with system overview, features, embed instructions, and multi-tenant demo
 │   │   ├── widget/page.tsx      # Widget UI (iframe target)
 │   │   └── dashboard/page.tsx   # Agent inbox + chat panel
 │   │
