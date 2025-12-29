@@ -10,8 +10,7 @@ jest.mock('../../lib/supabase', () => ({
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
-// Mock environment variables
-process.env.NEXT_PUBLIC_API_BASE_URL = '/test-backend';
+
 
 describe('ApiClient', () => {
   beforeEach(() => {
