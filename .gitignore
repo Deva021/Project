@@ -28,6 +28,7 @@ yarn-error.log*
 .env.production.local
 .vercel
 
+
 # Java / Maven (Backend & Relay)
 target/
 *.class
@@ -45,11 +46,11 @@ tomcat-*/
 apache-tomcat-*/
 
 # Agent Memory
-GEMINI.md
+
 apache-tomcat-*/
 
 # Agent Memory
-GEMINI.md
+
 catalina.out
 catalina.log
 
