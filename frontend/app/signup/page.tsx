@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import SignupForm from '@/components/auth/SignupForm'
 
-export default async function SignupPage({
+export default function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: { error?: string }
 }) {
-  const { error } = await searchParams
+  const error = searchParams.error
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { getSession, signIn as supabaseSignIn, signOut as supabaseSignOut } from '../lib/supabase';
+import { getSession, signIn as supabaseSignIn, signOut as supabaseSignOut, createClient } from '../lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 
@@ -10,6 +10,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -71,8 +72,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [router]);
 
+  const register = useCallback(async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        throw error;
+      }
+      setSession(data.session);
+      setUser(data.user);
+      router.push('/dashboard'); // T015: Implement post-registration redirection
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [router]);
+
   return (
-    <AuthContext.Provider value={{ session, user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ session, user, isLoading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

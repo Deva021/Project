@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../AuthContext'; // Import useAuth
 import { useRouter } from 'next/navigation'; // Import useRouter
 
@@ -13,11 +13,11 @@ export default function LoginForm({ error: initialError }: { error?: string | nu
   const { login, isLoading: authLoading, user } = useAuth(); // Get login function and auth state
   const router = useRouter();
 
-  // Redirect if already logged in (This logic should ideally be in LoginPage or a higher-order component)
-  if (!authLoading && user) {
-    router.push('/dashboard');
-    return null;
-  }
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, user, router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,8 +26,8 @@ export default function LoginForm({ error: initialError }: { error?: string | nu
     try {
       await login(email, password);
       // AuthContext handles redirection on success
-    } catch (err: any) { // Keep any for now as per original code, will fix later if linting requires
-      setFormError(err.message || 'Login failed. Please check your credentials.');
+    } catch (err: unknown) {
+      setFormError((err as Error).message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
