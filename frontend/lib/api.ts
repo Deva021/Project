@@ -44,13 +44,18 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> { // Change 'any' to 'T'
     const session: Session | null = await getSession();
-    const headers = {
+    const headers: any = {
       ...options.headers,
       'Content-Type': 'application/json',
     };
 
     if (session?.access_token) {
       headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+
+    // Add X-Tenant-ID if available in options (passed from specific methods)
+    if ((options as any).tenantId) {
+      headers['X-Tenant-ID'] = (options as any).tenantId;
     }
 
     try {
@@ -129,7 +134,12 @@ class ApiClient {
     title: string,
     message: string
   ): Promise<ApiResponse<{ conversation: Conversation; initialMessage: Message }>> {
-    return this.post('/api/conversations', { tenant_id, title, message });
+    return this.fetchWithAuth('/api/conversations', { 
+      method: 'POST', 
+      body: JSON.stringify({ tenant_id, title, message }),
+      // @ts-ignore - passing custom property to fetchWithAuth
+      tenantId: tenant_id 
+    });
   }
 
   public async getMessageHistory(conversationId: string): Promise<ApiResponse<Message[]>> {

@@ -40,8 +40,15 @@ public class DatabaseService {
                 config.setConnectionTimeout(30000);
 
                 dataSource = new HikariDataSource(config);
+                System.out.println("DEBUG: Database connection pool initialized successfully for URL: "
+                        + prop.getProperty("db.url"));
             } catch (IOException ex) {
+                System.err.println("ERROR: Failed to load application.properties");
                 throw new SQLException("Error loading database configuration", ex);
+            } catch (Exception ex) {
+                System.err.println("ERROR: Failed to initialize HikariDataSource");
+                ex.printStackTrace();
+                throw new SQLException("Error initializing database connection pool", ex);
             }
         }
         return dataSource;

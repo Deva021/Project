@@ -22,7 +22,7 @@ public class MessageService {
      * @param text           The message content.
      * @return The created Message object.
      */
-    public Message sendMessage(UUID conversationId, UUID senderId, String senderType, String text) {
+    public Message sendMessage(UUID conversationId, UUID senderId, String senderType, String text) throws SQLException {
         String sql = "INSERT INTO messages (conversation_id, sender_id, sender_type, text) VALUES (?, ?, ?, ?) RETURNING id, conversation_id, sender_id, sender_type, text, created_at";
         try (Connection conn = DatabaseService.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -48,13 +48,11 @@ public class MessageService {
                     return message;
                 }
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
         return null;
     }
 
-    private void publishNewMessageEvent(Message message) {
+    private void publishNewMessageEvent(Message message) throws SQLException {
         String sql = "SELECT tenant_id FROM conversations WHERE id = ?";
         try (Connection conn = DatabaseService.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -72,8 +70,6 @@ public class MessageService {
                     com.minintercom.realtime.client.RealtimeClient.getInstance().publish(event);
                 }
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
     }
 
@@ -83,7 +79,7 @@ public class MessageService {
      * @param conversationId The UUID of the conversation.
      * @return A list of messages.
      */
-    public List<Message> getMessageHistory(UUID conversationId) {
+    public List<Message> getMessageHistory(UUID conversationId) throws SQLException {
         List<Message> messages = new ArrayList<>();
         String sql = "SELECT id, conversation_id, sender_id, sender_type, text, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at ASC";
         try (Connection conn = DatabaseService.getConnection();
@@ -102,8 +98,6 @@ public class MessageService {
                             rs.getTimestamp("created_at")));
                 }
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
         return messages;
     }

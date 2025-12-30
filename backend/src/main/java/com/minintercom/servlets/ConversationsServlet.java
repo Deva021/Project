@@ -3,6 +3,7 @@ package com.minintercom.servlets;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minintercom.dto.Conversation;
 import com.minintercom.services.ConversationService;
+import com.minintercom.common.TenantContext;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -10,11 +11,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
  * Servlet for handling chat conversation-related API requests.
- * Provides endpoints for creating new conversations and listing existing ones for a tenant.
+ * Provides endpoints for creating new conversations and listing existing ones
+ * for a tenant.
  */
 public class ConversationsServlet extends HttpServlet {
 
@@ -45,14 +48,11 @@ public class ConversationsServlet extends HttpServlet {
         resp.setContentType("application/json");
         ObjectMapper objectMapper = new ObjectMapper();
 
-        // In a real application, tenantId would be set by an AuthFilter in TenantContext
-        // For this basic servlet, we'll assume a tenantId is available from request attribute (set by filter) or context
-        UUID tenantId = (UUID) req.getAttribute("tenantId"); // Assuming AuthFilter sets this
+        // Retrieve tenantId from TenantContext, which is set by AuthFilter
+        UUID tenantId = TenantContext.getTenantId();
         if (tenantId == null) {
-            // For testing purposes, or if no AuthFilter is present
-            // In a real secure app, this would be a 401 or 403
             resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            resp.getWriter().println("{\"error\":\"Tenant ID not found\"}");
+            resp.getWriter().println("{\"error\":\"Tenant ID not found in context\"}");
             return;
         }
 
@@ -61,56 +61,108 @@ public class ConversationsServlet extends HttpServlet {
             resp.setStatus(HttpServletResponse.SC_OK);
             resp.getWriter().println(objectMapper.writeValueAsString(conversations));
         } catch (Exception e) {
+            System.err.println("ERROR: Failed to fetch conversations for tenant: " + tenantId);
+            e.printStackTrace();
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            resp.getWriter().println("{\"error\":\"" + e.getMessage() + "\"}");
+            Map<String, String> error = new java.util.HashMap<>();
+            error.put("error", e.getMessage());
+            resp.getWriter().println(objectMapper.writeValueAsString(error));
         }
     }
 
     /**
      * Handles POST requests to /conversations.
-     * Creates a new conversation. The request body should contain a JSON object with at least a 'title'.
-     *
-     * @param req  The HttpServletRequest object.
-     * @param resp The HttpServletResponse object.
-     * @throws ServletException If a servlet-specific error occurs.
-     * @throws IOException      If an I/O error occurs.
+     * Creates a new conversation and an initial message.
      */
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
         ObjectMapper objectMapper = new ObjectMapper();
 
+        String requestBody = "";
         try {
-            // Read the request body
+            // Read the request body for logging and parsing
             StringBuilder sb = new StringBuilder();
             String line;
-            while ((line = req.getReader().readLine()) != null) {
-                sb.append(line);
+            try (java.io.BufferedReader reader = req.getReader()) {
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
             }
-            String requestBody = sb.toString();
+            requestBody = sb.toString();
+            System.out.println("DEBUG: POST /api/conversations request body: " + requestBody);
 
-            // Parse the request body into a map or DTO
-            // Assuming the request body contains "title" and "visitor_name"
-            Conversation newConversation = objectMapper.readValue(requestBody, Conversation.class);
+            // Parse the request body into a Map to extract all fields
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> body = objectMapper.readValue(requestBody, java.util.Map.class);
 
-            // In a real application, tenantId would be set by an AuthFilter in TenantContext
-            // For this basic servlet, we'll use a placeholder UUID or get from a test context
-            UUID tenantId = UUID.randomUUID(); // Placeholder for testing
+            String title = (String) body.get("title");
+            String initialMessageContent = (String) body.get("message");
+            String tenantIdFromBody = (String) body.get("tenant_id");
+
+            if (initialMessageContent == null || initialMessageContent.trim().isEmpty()) {
+                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                resp.getWriter().println("{\"error\":\"Initial message is required\"}");
+                return;
+            }
+
+            // Retrieve tenantId from TenantContext
+            UUID tenantId = TenantContext.getTenantId();
+
+            // Fallback to tenant_id from body if context is missing (simplified security)
+            if (tenantId == null && tenantIdFromBody != null) {
+                try {
+                    tenantId = UUID.fromString(tenantIdFromBody);
+                    System.out.println("DEBUG: Using tenant_id from request body: " + tenantId);
+                } catch (IllegalArgumentException e) {
+                    System.err.println("DEBUG: Invalid tenant_id format in body: " + tenantIdFromBody);
+                }
+            }
+
+            if (tenantId == null) {
+                resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                resp.getWriter().println("{\"error\":\"Tenant ID not found in context or body\"}");
+                return;
+            }
+
+            // Create Conversation object
+            Conversation newConversation = new Conversation();
             newConversation.setTenantId(tenantId);
+            newConversation.setTitle(title);
 
-            Conversation createdConversation = conversationService.createConversation(newConversation, null); // visitor_name is not handled in service yet
+            // Save conversation
+            Conversation createdConversation = conversationService.createConversation(newConversation, null);
 
             if (createdConversation != null) {
+                // Create initial message
+                com.minintercom.services.MessageService messageService = new com.minintercom.services.MessageService();
+                com.minintercom.dto.Message initialMessage = messageService.sendMessage(
+                        createdConversation.getId(),
+                        null,
+                        "visitor",
+                        initialMessageContent);
+
+                // Prepare combined response
+                java.util.Map<String, Object> result = new java.util.HashMap<>();
+                result.put("conversation", createdConversation);
+                result.put("initialMessage", initialMessage);
+
                 resp.setStatus(HttpServletResponse.SC_CREATED);
-                resp.getWriter().println(objectMapper.writeValueAsString(createdConversation));
+                resp.getWriter().println(objectMapper.writeValueAsString(result));
             } else {
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 resp.getWriter().println("{\"error\":\"Failed to create conversation\"}");
             }
 
         } catch (Exception e) {
+            System.err.println("ERROR: Failed to process POST /api/conversations");
+            System.err.println("Request Body: " + requestBody);
+            e.printStackTrace();
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            resp.getWriter().println("{\"error\":\"" + e.getMessage() + "\"}");
+            Map<String, String> error = new java.util.HashMap<>();
+            error.put("error", e.getMessage());
+            resp.getWriter().println(objectMapper.writeValueAsString(error));
         }
     }
 }

@@ -47,12 +47,20 @@ public class ChatServlet extends HttpServlet {
     private void handleListConversations(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         UUID tenantId = (UUID) req.getAttribute("tenantId"); // Assuming AuthFilter sets this
         if (tenantId == null) {
+            tenantId = com.minintercom.common.TenantContext.getTenantId();
+        }
+        if (tenantId == null) {
             resp.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Tenant ID not found");
             return;
         }
-        List<Conversation> conversations = conversationService.getConversationsByTenantId(tenantId);
-        resp.setContentType("application/json");
-        objectMapper.writeValue(resp.getWriter(), conversations);
+        try {
+            List<Conversation> conversations = conversationService.getConversationsByTenantId(tenantId);
+            resp.setContentType("application/json");
+            objectMapper.writeValue(resp.getWriter(), conversations);
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error: " + e.getMessage());
+        }
     }
 
     private void handleGetMessageHistory(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -70,6 +78,9 @@ public class ChatServlet extends HttpServlet {
             objectMapper.writeValue(resp.getWriter(), messages);
         } catch (IllegalArgumentException e) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid conversation ID format");
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error: " + e.getMessage());
         }
     }
 
@@ -108,10 +119,13 @@ public class ChatServlet extends HttpServlet {
             newConversation.setTenantId(tenantId);
             newConversation.setTitle(title);
 
-            Conversation conversation = conversationService.createConversation(newConversation, null); // visitor_name not handled here yet
+            Conversation conversation = conversationService.createConversation(newConversation, null); // visitor_name
+                                                                                                       // not handled
+                                                                                                       // here yet
 
             if (conversation != null) {
-                Message message = messageService.sendMessage(conversation.getId(), null, "visitor", initialMessageContent);
+                Message message = messageService.sendMessage(conversation.getId(), null, "visitor",
+                        initialMessageContent);
 
                 Map<String, Object> result = new HashMap<>();
                 result.put("conversation", conversation);
@@ -124,6 +138,9 @@ public class ChatServlet extends HttpServlet {
             }
         } catch (IllegalArgumentException e) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid tenant_id format");
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error: " + e.getMessage());
         }
     }
 
@@ -158,6 +175,9 @@ public class ChatServlet extends HttpServlet {
             }
         } catch (IllegalArgumentException e) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid ID format");
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error: " + e.getMessage());
         }
     }
 
@@ -192,6 +212,9 @@ public class ChatServlet extends HttpServlet {
             resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
         } catch (IllegalArgumentException e) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid conversation ID format");
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error: " + e.getMessage());
         }
     }
 }
