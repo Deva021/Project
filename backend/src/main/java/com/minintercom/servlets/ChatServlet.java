@@ -40,19 +40,62 @@ public class ChatServlet extends HttpServlet {
             // GET /api/conversations/{id}/messages - Fetch message history
             handleGetMessageHistory(req, resp);
         } else {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+            // GET /api/conversations/{id} - Fetch single conversation details
+            handleGetConversation(req, resp);
         }
     }
 
     private void handleListConversations(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         UUID tenantId = (UUID) req.getAttribute("tenantId"); // Assuming AuthFilter sets this
         if (tenantId == null) {
+            tenantId = com.minintercom.common.TenantContext.getTenantId();
+        }
+        if (tenantId == null) {
             resp.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Tenant ID not found");
             return;
         }
-        List<Conversation> conversations = conversationService.getConversationsByTenantId(tenantId);
-        resp.setContentType("application/json");
-        objectMapper.writeValue(resp.getWriter(), conversations);
+        try {
+            String status = req.getParameter("status");
+            List<Conversation> conversations = conversationService.getConversationsByTenantId(tenantId, status);
+
+            // Trigger cleanup periodically
+            try {
+                conversationService.cleanupOldClosedConversations();
+            } catch (Exception e) {
+                System.err.println("DEBUG: Cleanup failed (ignoring): " + e.getMessage());
+            }
+
+            resp.setContentType("application/json");
+            objectMapper.writeValue(resp.getWriter(), conversations);
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error: " + e.getMessage());
+        }
+    }
+
+    private void handleGetConversation(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String pathInfo = req.getPathInfo();
+        String[] parts = pathInfo.split("/");
+        if (parts.length < 2) {
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+        try {
+            UUID conversationId = UUID.fromString(parts[1]);
+            Conversation conversation = conversationService.getConversationById(conversationId);
+            if (conversation != null) {
+                resp.setContentType("application/json");
+                objectMapper.writeValue(resp.getWriter(), conversation);
+            } else {
+                resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+            }
+        } catch (IllegalArgumentException e) {
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid conversation ID format");
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error: " + e.getMessage());
+        }
     }
 
     private void handleGetMessageHistory(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -70,6 +113,9 @@ public class ChatServlet extends HttpServlet {
             objectMapper.writeValue(resp.getWriter(), messages);
         } catch (IllegalArgumentException e) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid conversation ID format");
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error: " + e.getMessage());
         }
     }
 
@@ -108,10 +154,13 @@ public class ChatServlet extends HttpServlet {
             newConversation.setTenantId(tenantId);
             newConversation.setTitle(title);
 
-            Conversation conversation = conversationService.createConversation(newConversation, null); // visitor_name not handled here yet
+            Conversation conversation = conversationService.createConversation(newConversation, null); // visitor_name
+                                                                                                       // not handled
+                                                                                                       // here yet
 
             if (conversation != null) {
-                Message message = messageService.sendMessage(conversation.getId(), null, "visitor", initialMessageContent);
+                Message message = messageService.sendMessage(conversation.getId(), null, "visitor",
+                        initialMessageContent);
 
                 Map<String, Object> result = new HashMap<>();
                 result.put("conversation", conversation);
@@ -124,6 +173,9 @@ public class ChatServlet extends HttpServlet {
             }
         } catch (IllegalArgumentException e) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid tenant_id format");
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error: " + e.getMessage());
         }
     }
 
@@ -158,6 +210,9 @@ public class ChatServlet extends HttpServlet {
             }
         } catch (IllegalArgumentException e) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid ID format");
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error: " + e.getMessage());
         }
     }
 
@@ -192,6 +247,9 @@ public class ChatServlet extends HttpServlet {
             resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
         } catch (IllegalArgumentException e) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid conversation ID format");
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error: " + e.getMessage());
         }
     }
 }

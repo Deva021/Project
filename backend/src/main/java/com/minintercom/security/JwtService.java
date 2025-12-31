@@ -40,6 +40,7 @@ public class JwtService {
 
     /**
      * Validates a JWT token and returns the decoded object if valid.
+     * 
      * @param token The JWT token to validate.
      * @return The decoded JWT if valid, null otherwise.
      */
@@ -47,18 +48,22 @@ public class JwtService {
         try {
             return verifier.verify(token);
         } catch (Exception e) {
+            System.err.println("JWT Validation Failed: " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
     }
 
     /**
      * Extracts a specific claim from a decoded JWT.
+     * 
      * @param decodedJWT The decoded JWT.
-     * @param claimName The name of the claim to extract.
+     * @param claimName  The name of the claim to extract.
      * @return The claim value as a string, or null if not found.
      */
     public static String getClaim(DecodedJWT decodedJWT, String claimName) {
-        if (decodedJWT == null) return null;
+        if (decodedJWT == null)
+            return null;
         return decodedJWT.getClaim(claimName).asString();
     }
 }

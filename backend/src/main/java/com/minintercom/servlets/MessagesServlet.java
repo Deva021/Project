@@ -14,7 +14,8 @@ import java.util.UUID;
 
 /**
  * Servlet for handling chat message-related API requests.
- * Provides endpoints for sending messages and retrieving message history for a conversation.
+ * Provides endpoints for sending messages and retrieving message history for a
+ * conversation.
  */
 public class MessagesServlet extends HttpServlet {
 
@@ -54,14 +55,20 @@ public class MessagesServlet extends HttpServlet {
 
         try {
             UUID conversationId = UUID.fromString(conversationIdStr);
-            // In a real application, you'd verify tenant access via AuthFilter/TenantContext
+            // In a real application, you'd verify tenant access via
+            // AuthFilter/TenantContext
             List<Message> messages = messageService.getMessageHistory(conversationId);
             resp.setStatus(HttpServletResponse.SC_OK);
             resp.getWriter().println(objectMapper.writeValueAsString(messages));
         } catch (IllegalArgumentException e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             resp.getWriter().println("{\"error\":\"Invalid conversationId format\"}");
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            resp.getWriter().println("{\"error\":\"Database error: " + e.getMessage() + "\"}");
         } catch (Exception e) {
+            e.printStackTrace();
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             resp.getWriter().println("{\"error\":\"" + e.getMessage() + "\"}");
         }
@@ -69,8 +76,10 @@ public class MessagesServlet extends HttpServlet {
 
     /**
      * Handles POST requests to /messages.
-     * Sends a new message to a conversation. The request body should be a JSON object
-     * containing 'conversationId', 'content', and optionally 'senderId' and 'senderType'.
+     * Sends a new message to a conversation. The request body should be a JSON
+     * object
+     * containing 'conversationId', 'content', and optionally 'senderId' and
+     * 'senderType'.
      *
      * @param req  The HttpServletRequest object.
      * @param resp The HttpServletResponse object.
@@ -90,7 +99,8 @@ public class MessagesServlet extends HttpServlet {
             }
             String requestBody = sb.toString();
 
-            // Expected JSON: { "conversationId": "...", "content": "...", "senderId": "...", "senderType": "..." }
+            // Expected JSON: { "conversationId": "...", "content": "...", "senderId":
+            // "...", "senderType": "..." }
             // For this basic servlet, we'll extract directly.
             // In a more robust system, a dedicated DTO for request body would be used.
             @SuppressWarnings("unchecked")
@@ -114,7 +124,6 @@ public class MessagesServlet extends HttpServlet {
                 senderType = "visitor"; // Default to visitor if not specified
             }
 
-
             Message createdMessage = messageService.sendMessage(conversationId, senderId, senderType, content);
 
             if (createdMessage != null) {
@@ -128,7 +137,12 @@ public class MessagesServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             resp.getWriter().println("{\"error\":\"Invalid ID format: " + e.getMessage() + "\"}");
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            resp.getWriter().println("{\"error\":\"Database error: " + e.getMessage() + "\"}");
         } catch (Exception e) {
+            e.printStackTrace();
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST); // More general for parsing or other errors
             resp.getWriter().println("{\"error\":\"" + e.getMessage() + "\"}");
         }

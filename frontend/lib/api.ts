@@ -39,18 +39,30 @@ export interface Message {
 
 
 class ApiClient {
+  private tenantId: string | null = null;
+
+  public setTenantId(id: string | null) {
+    this.tenantId = id;
+  }
+
   private async fetchWithAuth<T>( // Add generic type T
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> { // Change 'any' to 'T'
     const session: Session | null = await getSession();
-    const headers = {
+    const headers: any = {
       ...options.headers,
       'Content-Type': 'application/json',
     };
 
     if (session?.access_token) {
       headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+
+    // Add X-Tenant-ID if available in options or set globally
+    const tenantIdToUse = (options as any).tenantId || this.tenantId;
+    if (tenantIdToUse) {
+      headers['X-Tenant-ID'] = tenantIdToUse;
     }
 
     try {
@@ -78,6 +90,10 @@ class ApiClient {
           };
         }
         return { data: null, error: errorData };
+      }
+
+      if (response.status === 204) {
+        return { data: null as any, error: null };
       }
 
       const data = await response.json();
@@ -120,8 +136,16 @@ class ApiClient {
     return this.get('/api/health');
   }
 
-  public async listConversations(tenantId: string): Promise<ApiResponse<Conversation[]>> {
-    return this.get(`/api/conversations?tenantId=${tenantId}`);
+  public async listConversations(tenantId: string, status?: string): Promise<ApiResponse<Conversation[]>> {
+    let url = `/api/conversations?tenantId=${tenantId}`;
+    if (status) {
+      url += `&status=${status}`;
+    }
+    return this.fetchWithAuth(url, {
+      method: 'GET',
+      // @ts-ignore - passing custom property to fetchWithAuth
+      tenantId: tenantId
+    });
   }
 
   public async createConversation(
@@ -129,7 +153,16 @@ class ApiClient {
     title: string,
     message: string
   ): Promise<ApiResponse<{ conversation: Conversation; initialMessage: Message }>> {
-    return this.post('/api/conversations', { tenant_id, title, message });
+    return this.fetchWithAuth('/api/conversations', { 
+      method: 'POST', 
+      body: JSON.stringify({ tenant_id, title, message }),
+      // @ts-ignore - passing custom property to fetchWithAuth
+      tenantId: tenant_id 
+    });
+  }
+
+  public async getConversation(conversationId: string): Promise<ApiResponse<Conversation>> {
+    return this.get(`/api/conversations/${conversationId}`);
   }
 
   public async getMessageHistory(conversationId: string): Promise<ApiResponse<Message[]>> {
