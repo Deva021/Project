@@ -28,7 +28,7 @@ const ConversationList: React.FC<ConversationListProps> = ({ tenantId, agentId, 
       const idToUse = tenantId || agentId;
       if (idToUse) {
         try {
-          const response = await apiClient.listConversations(idToUse);
+          const response = await apiClient.listConversations(idToUse, 'OPEN');
           if (response.data) {
             setConversations(prev => {
               // Only update if there are changes to avoid unnecessary re-renders

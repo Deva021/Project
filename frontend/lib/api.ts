@@ -92,6 +92,10 @@ class ApiClient {
         return { data: null, error: errorData };
       }
 
+      if (response.status === 204) {
+        return { data: null as any, error: null };
+      }
+
       const data = await response.json();
       return { data, error: null };
     } catch (networkError: unknown) { // Changed any to unknown
@@ -132,8 +136,12 @@ class ApiClient {
     return this.get('/api/health');
   }
 
-  public async listConversations(tenantId: string): Promise<ApiResponse<Conversation[]>> {
-    return this.fetchWithAuth(`/api/conversations?tenantId=${tenantId}`, {
+  public async listConversations(tenantId: string, status?: string): Promise<ApiResponse<Conversation[]>> {
+    let url = `/api/conversations?tenantId=${tenantId}`;
+    if (status) {
+      url += `&status=${status}`;
+    }
+    return this.fetchWithAuth(url, {
       method: 'GET',
       // @ts-ignore - passing custom property to fetchWithAuth
       tenantId: tenantId
@@ -151,6 +159,10 @@ class ApiClient {
       // @ts-ignore - passing custom property to fetchWithAuth
       tenantId: tenant_id 
     });
+  }
+
+  public async getConversation(conversationId: string): Promise<ApiResponse<Conversation>> {
+    return this.get(`/api/conversations/${conversationId}`);
   }
 
   public async getMessageHistory(conversationId: string): Promise<ApiResponse<Message[]>> {

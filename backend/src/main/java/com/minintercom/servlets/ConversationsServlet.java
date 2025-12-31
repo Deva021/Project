@@ -57,7 +57,16 @@ public class ConversationsServlet extends HttpServlet {
         }
 
         try {
-            List<Conversation> conversations = conversationService.getConversationsByTenantId(tenantId);
+            String status = req.getParameter("status");
+            List<Conversation> conversations = conversationService.getConversationsByTenantId(tenantId, status);
+
+            // Trigger cleanup periodically (simplified: on every list request)
+            try {
+                conversationService.cleanupOldClosedConversations();
+            } catch (Exception e) {
+                System.err.println("DEBUG: Cleanup failed (ignoring): " + e.getMessage());
+            }
+
             resp.setStatus(HttpServletResponse.SC_OK);
             resp.getWriter().println(objectMapper.writeValueAsString(conversations));
         } catch (Exception e) {
@@ -163,6 +172,56 @@ public class ConversationsServlet extends HttpServlet {
             Map<String, String> error = new java.util.HashMap<>();
             error.put("error", e.getMessage());
             resp.getWriter().println(objectMapper.writeValueAsString(error));
+        }
+    }
+
+    @Override
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        resp.setContentType("application/json");
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        String pathInfo = req.getPathInfo();
+        if (pathInfo == null || pathInfo.equals("/")) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            resp.getWriter().println("{\"error\":\"Conversation ID is required\"}");
+            return;
+        }
+
+        // Expected path: /api/conversations/{id}/status
+        String[] parts = pathInfo.split("/");
+        if (parts.length < 2) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            resp.getWriter().println("{\"error\":\"Invalid path format\"}");
+            return;
+        }
+
+        String conversationIdStr = parts[1];
+        UUID conversationId;
+        try {
+            conversationId = UUID.fromString(conversationIdStr);
+        } catch (IllegalArgumentException e) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            resp.getWriter().println("{\"error\":\"Invalid conversation ID format\"}");
+            return;
+        }
+
+        try {
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> body = objectMapper.readValue(req.getReader(), java.util.Map.class);
+            String status = (String) body.get("status");
+
+            if (status == null || status.trim().isEmpty()) {
+                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                resp.getWriter().println("{\"error\":\"Status is required\"}");
+                return;
+            }
+
+            conversationService.updateConversationStatus(conversationId, status);
+            resp.setStatus(HttpServletResponse.SC_OK);
+            resp.getWriter().println("{\"success\":true}");
+        } catch (Exception e) {
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            resp.getWriter().println("{\"error\":\"" + e.getMessage() + "\"}");
         }
     }
 }

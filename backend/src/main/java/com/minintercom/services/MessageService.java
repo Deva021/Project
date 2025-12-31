@@ -23,6 +23,22 @@ public class MessageService {
      * @return The created Message object.
      */
     public Message sendMessage(UUID conversationId, UUID senderId, String senderType, String text) throws SQLException {
+        String checkStatusSql = "SELECT status FROM conversations WHERE id = ?";
+        try (Connection conn = DatabaseService.getConnection();
+                PreparedStatement checkStmt = conn.prepareStatement(checkStatusSql)) {
+            checkStmt.setObject(1, conversationId);
+            try (ResultSet rs = checkStmt.executeQuery()) {
+                if (rs.next()) {
+                    String status = rs.getString("status");
+                    if (!"OPEN".equalsIgnoreCase(status)) {
+                        throw new SQLException("Cannot send message to a " + status + " conversation.");
+                    }
+                } else {
+                    throw new SQLException("Conversation not found.");
+                }
+            }
+        }
+
         String sql = "INSERT INTO messages (conversation_id, sender_id, sender_type, text) VALUES (?, ?, ?, ?) RETURNING id, conversation_id, sender_id, sender_type, text, created_at";
         try (Connection conn = DatabaseService.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {

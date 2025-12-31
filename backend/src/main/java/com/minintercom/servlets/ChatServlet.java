@@ -40,7 +40,8 @@ public class ChatServlet extends HttpServlet {
             // GET /api/conversations/{id}/messages - Fetch message history
             handleGetMessageHistory(req, resp);
         } else {
-            resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+            // GET /api/conversations/{id} - Fetch single conversation details
+            handleGetConversation(req, resp);
         }
     }
 
@@ -54,9 +55,43 @@ public class ChatServlet extends HttpServlet {
             return;
         }
         try {
-            List<Conversation> conversations = conversationService.getConversationsByTenantId(tenantId);
+            String status = req.getParameter("status");
+            List<Conversation> conversations = conversationService.getConversationsByTenantId(tenantId, status);
+
+            // Trigger cleanup periodically
+            try {
+                conversationService.cleanupOldClosedConversations();
+            } catch (Exception e) {
+                System.err.println("DEBUG: Cleanup failed (ignoring): " + e.getMessage());
+            }
+
             resp.setContentType("application/json");
             objectMapper.writeValue(resp.getWriter(), conversations);
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error: " + e.getMessage());
+        }
+    }
+
+    private void handleGetConversation(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String pathInfo = req.getPathInfo();
+        String[] parts = pathInfo.split("/");
+        if (parts.length < 2) {
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+        try {
+            UUID conversationId = UUID.fromString(parts[1]);
+            Conversation conversation = conversationService.getConversationById(conversationId);
+            if (conversation != null) {
+                resp.setContentType("application/json");
+                objectMapper.writeValue(resp.getWriter(), conversation);
+            } else {
+                resp.sendError(HttpServletResponse.SC_NOT_FOUND);
+            }
+        } catch (IllegalArgumentException e) {
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid conversation ID format");
         } catch (java.sql.SQLException e) {
             e.printStackTrace();
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error: " + e.getMessage());

@@ -3,7 +3,7 @@ import apiClient, { Message } from '../lib/api';
 import { toast } from 'sonner';
 import { Skeleton } from './ui/Skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, User, Bot, Loader2 } from 'lucide-react';
+import { Send, User, Bot, Loader2, XCircle } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -24,6 +24,8 @@ export default function ChatWindow({ tenantId, conversationId: initialConversati
   const [conversationId, setConversationId] = useState<string | undefined>(initialConversationId);
   const [loading, setLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [conversationStatus, setConversationStatus] = useState<string>('OPEN');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -47,28 +49,32 @@ export default function ChatWindow({ tenantId, conversationId: initialConversati
   useEffect(() => {
     if (conversationId) {
       setLoading(true);
-      apiClient.getMessageHistory(conversationId)
-        .then(response => {
-          if (response.data) {
-            setMessages(response.data);
-          } else {
-            toast.error('Failed to fetch message history.');
-          }
-        })
-        .finally(() => setLoading(false));
+      
+      // Fetch initial status and messages
+      Promise.all([
+        apiClient.getConversation(conversationId),
+        apiClient.getMessageHistory(conversationId)
+      ]).then(([convRes, msgRes]) => {
+        if (convRes.data) setConversationStatus(convRes.data.status);
+        if (msgRes.data) setMessages(msgRes.data);
+        if (convRes.error || msgRes.error) toast.error('Failed to load conversation details.');
+      }).finally(() => setLoading(false));
 
       const pollingInterval = setInterval(async () => {
         try {
-          const response = await apiClient.getMessageHistory(conversationId);
-          if (response.data) {
+          const [convRes, msgRes] = await Promise.all([
+            apiClient.getConversation(conversationId),
+            apiClient.getMessageHistory(conversationId)
+          ]);
+
+          if (convRes.data) setConversationStatus(convRes.data.status);
+
+          if (msgRes.data) {
             setMessages(prevMessages => {
-              const newMessages = response.data!.filter(newMessage => {
-                // Check if this message is already in the list (by ID)
+              const newMessages = msgRes.data!.filter(newMessage => {
                 const existsById = prevMessages.some(oldMsg => oldMsg.id === newMessage.id);
                 if (existsById) return false;
 
-                // Check if this message is an optimistic message that hasn't been replaced yet
-                // (same text, same senderType, and within a reasonable time window)
                 const isOptimisticMatch = prevMessages.some(oldMsg => 
                   oldMsg.id.startsWith('temp-') && 
                   oldMsg.text === newMessage.text && 
@@ -85,7 +91,7 @@ export default function ChatWindow({ tenantId, conversationId: initialConversati
             });
           }
         } catch (err) {
-          console.error("Error polling for new messages:", err);
+          console.error("Error polling for updates:", err);
         }
       }, 3000);
 
@@ -153,6 +159,25 @@ export default function ChatWindow({ tenantId, conversationId: initialConversati
     }
   };
 
+  const handleCloseConversation = () => {
+    if (!conversationId) return;
+    setShowCloseModal(true);
+  };
+
+  const confirmClose = async () => {
+    if (!conversationId) return;
+    try {
+      const response = await apiClient.updateConversationStatus(conversationId, 'CLOSED');
+      if (response.error) throw new Error(response.error.message);
+      toast.success('Conversation closed.');
+      window.location.reload();
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Failed to close conversation.');
+    } finally {
+      setShowCloseModal(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background/50 backdrop-blur-xl border border-white/10 shadow-2xl rounded-2xl">
       {/* Header */}
@@ -160,13 +185,27 @@ export default function ChatWindow({ tenantId, conversationId: initialConversati
         <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
           <Bot size={20} />
         </div>
-        <div>
+        <div className="flex-1">
           <h3 className="font-semibold text-sm">Support Assistant</h3>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Online</span>
+            <span className={cn(
+              "w-2 h-2 rounded-full animate-pulse",
+              conversationStatus === 'OPEN' ? "bg-green-500" : "bg-red-500"
+            )} />
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+              {conversationStatus === 'OPEN' ? 'Online' : 'Closed'}
+            </span>
           </div>
         </div>
+        {senderType === 'agent' && conversationId && (
+          <button
+            onClick={handleCloseConversation}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-400/10 rounded-lg transition-all border border-red-400/20"
+          >
+            <XCircle size={14} />
+            Close Chat
+          </button>
+        )}
       </div>
 
       {/* Messages Area */}
@@ -225,25 +264,70 @@ export default function ChatWindow({ tenantId, conversationId: initialConversati
 
       {/* Input Area */}
       <div className="p-4 bg-white/5 border-t border-white/10">
-        <div className="relative flex items-center gap-2 bg-white/5 rounded-xl border border-white/10 p-1 focus-within:border-primary/50 transition-colors">
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            className="flex-1 bg-transparent px-4 py-2 text-sm focus:outline-none placeholder:text-muted-foreground"
-            placeholder="Type your message..."
-            disabled={isSending}
-          />
-          <button
-            onClick={handleSendMessage}
-            disabled={!inputText.trim() || isSending}
-            className="p-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all disabled:opacity-50 disabled:scale-95 active:scale-90"
-          >
-            {isSending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-          </button>
-        </div>
+        {conversationStatus === 'OPEN' ? (
+          <div className="relative flex items-center gap-2 bg-white/5 rounded-xl border border-white/10 p-1 focus-within:border-primary/50 transition-colors">
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              className="flex-1 bg-transparent px-4 py-2 text-sm focus:outline-none placeholder:text-muted-foreground"
+              placeholder="Type your message..."
+              disabled={isSending}
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={!inputText.trim() || isSending}
+              className="p-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-all disabled:opacity-50 disabled:scale-95 active:scale-90"
+            >
+              {isSending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-2 px-4 bg-red-500/5 border border-red-500/20 rounded-xl text-center">
+            <p className="text-xs font-medium text-red-400">This conversation is closed.</p>
+            <p className="text-[10px] text-red-400/60">You can no longer send messages here.</p>
+          </div>
+        )}
       </div>
+
+      {/* Close Conversation Modal */}
+      <AnimatePresence>
+        {showCloseModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-zinc-900 border border-white/10 p-8 rounded-3xl max-w-sm w-full shadow-2xl text-center space-y-6"
+            >
+              <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto">
+                <XCircle size={32} />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">Close Conversation?</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  This conversation will be marked as closed and permanently deleted in <span className="text-white font-semibold">24 hours</span>.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 pt-2">
+                <button
+                  onClick={confirmClose}
+                  className="w-full py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-all active:scale-95"
+                >
+                  Yes, Close Chat
+                </button>
+                <button
+                  onClick={() => setShowCloseModal(false)}
+                  className="w-full py-3 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-xl transition-all active:scale-95"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
