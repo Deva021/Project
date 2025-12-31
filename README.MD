@@ -212,18 +212,18 @@ mini-intercom/
 frontend/
 ├── src/
 │   ├── app/
-│   │   ├── page.tsx             # Demo landing + embed snippet
+│   │   ├── page.tsx             # Main landing page with system overview, features, embed instructions, and multi-tenant demo
 │   │   ├── widget/page.tsx      # Widget UI (iframe target)
 │   │   └── dashboard/page.tsx   # Agent inbox + chat panel
 │   │
 │   ├── components/
 │   │   ├── ChatWindow.tsx       # Message list + composer
 │   │   ├── ConversationList.tsx # Inbox sidebar
-│   │   └── AuthGate.tsx         # Supabase login gate
+│   │   └── AuthContext.tsx      # Supabase Auth Context (login/logout, session management)
 │   │
 │   └── lib/
-│       ├── supabase.ts          # Supabase client setup
-│       └── api.ts               # Calls servlet endpoints
+│       ├── supabase.ts          # Supabase client setup + Auth helpers (signIn, signOut, getSession)
+│       └── api.ts               # Calls servlet endpoints + token injection + error handling
 │
 ├── public/
 │   └── widget-loader.js         # Optional: inject iframe script

@@ -1,21 +1,55 @@
 'use client'
 
-import { useState } from 'react'
+import { useState } from 'react';
+import { useAuth } from '../AuthContext'; // Import useAuth
 
 export default function SignupForm({ error: initialError }: { error?: string | null }) {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(initialError || null)
+  const [tenantName, setTenantName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [formError, setFormError] = useState<string | null>(initialError || null);
+  const [localLoading, setLocalLoading] = useState(false); // Local loading state for form submission
 
-  const handleSubmit = async (_e: React.FormEvent<HTMLFormElement>) => {
-    setLoading(true)
-    setError(null)
-  }
+  const { register, isLoading: authLoading } = useAuth(); // Get register function and auth state
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLocalLoading(true); // Local loading for form
+    setFormError(null);
+
+    if (password !== confirmPassword) {
+      setFormError('Passwords do not match');
+      setLocalLoading(false);
+      return;
+    }
+
+    try {
+      // For now, tenantName is not passed to AuthContext's register.
+      // This might need to be adjusted based on backend API.
+      await register(email, password);
+      // AuthContext handles redirection on success
+    } catch (err: unknown) {
+      setFormError((err as Error).message || 'Registration failed. Please try again.');
+    } finally {
+      setLocalLoading(false);
+    }
+  };
 
   return (
     <div className="mt-8 space-y-6">
-      {error && (
+      {(initialError || formError) && (
         <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded">
-          <p className="text-sm text-red-700">{error}</p>
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{initialError || formError}</p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -30,6 +64,8 @@ export default function SignupForm({ error: initialError }: { error?: string | n
               name="tenantName"
               type="text"
               required
+              value={tenantName}
+              onChange={(e) => setTenantName(e.target.value)}
               className="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
               placeholder="e.g. Acme Corp"
             />
@@ -44,6 +80,8 @@ export default function SignupForm({ error: initialError }: { error?: string | n
               type="email"
               autoComplete="email"
               required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
               placeholder="Email address"
             />
@@ -58,8 +96,26 @@ export default function SignupForm({ error: initialError }: { error?: string | n
               type="password"
               autoComplete="new-password"
               required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
               placeholder="Password"
+            />
+          </div>
+          <div>
+            <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-1">
+              Confirm Password
+            </label>
+            <input
+              id="confirm-password"
+              name="confirm-password"
+              type="password"
+              autoComplete="new-password"
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+              placeholder="Confirm Password"
             />
           </div>
         </div>
@@ -67,10 +123,10 @@ export default function SignupForm({ error: initialError }: { error?: string | n
         <div>
           <button
             type="submit"
-            disabled={loading}
+            disabled={localLoading || authLoading}
             className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? (
+            {(localLoading || authLoading) ? (
               <span className="flex items-center">
                 <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -85,5 +141,5 @@ export default function SignupForm({ error: initialError }: { error?: string | n
         </div>
       </form>
     </div>
-  )
+  );
 }
