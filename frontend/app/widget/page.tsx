@@ -4,9 +4,12 @@ import { useState } from 'react';
 import ChatWindow from '../../components/ChatWindow';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 
 export default function WidgetPage() {
   const [isOpen, setIsOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const tenantId = searchParams.get('tenantId') || 'a0000000-0000-0000-0000-000000000001';
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">
@@ -18,7 +21,7 @@ export default function WidgetPage() {
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             className="w-[400px] h-[600px] max-h-[80vh] shadow-2xl rounded-3xl overflow-hidden glass"
           >
-            <ChatWindow tenantId="a0000000-0000-0000-0000-000000000001" senderType="visitor" />
+            <ChatWindow tenantId={tenantId} senderType="visitor" />
           </motion.div>
         )}
       </AnimatePresence>

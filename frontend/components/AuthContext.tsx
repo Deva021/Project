@@ -10,7 +10,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, tenantName: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -72,24 +72,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [router]);
 
-  const register = useCallback(async (email: string, password: string) => {
+  const register = useCallback(async (email: string, password: string, tenantName: string) => {
     setIsLoading(true);
     try {
       const supabase = createClient();
       const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) {
-        throw error;
+      
+      if (error) throw error;
+      if (!data.user) throw new Error('User creation failed');
+
+      // Call the tenant initialization API
+      const response = await fetch('/api/auth/init-tenant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: data.user.id,
+          tenantName,
+          email
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to initialize tenant');
       }
-      setSession(data.session);
-      setUser(data.user);
-      router.push('/dashboard'); // T015: Implement post-registration redirection
+
+      // Refresh session to get updated app_metadata (tenant_id)
+      await loadSession();
+      router.push('/dashboard');
     } catch (error) {
       console.error('Registration failed:', error);
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, [router]);
+  }, [loadSession, router]);
 
   return (
     <AuthContext.Provider value={{ session, user, isLoading, login, register, logout }}>

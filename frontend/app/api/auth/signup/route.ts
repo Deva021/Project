@@ -95,6 +95,18 @@ export async function POST(request: Request) {
       )
     }
 
+    // 3. Update User Metadata with Tenant ID
+    const { error: updateError } = await adminAuthClient.auth.admin.updateUserById(
+      authData.user.id,
+      { app_metadata: { tenant_id: tenantData.id } }
+    )
+
+    if (updateError) {
+      console.error('Failed to update user metadata:', updateError)
+      // We don't necessarily want to fail the whole signup if just metadata update fails, 
+      // but logging it is important.
+    }
+
     return NextResponse.redirect(new URL('/dashboard', request.url), {
       status: 303,
     })

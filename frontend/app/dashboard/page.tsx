@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import ConversationList from '../../components/ConversationList';
 import ChatWindow from '../../components/ChatWindow';
-import { LogOut, LayoutDashboard, Settings, User as UserIcon, MessageSquare } from 'lucide-react';
+import apiClient from '../../lib/api';
+import { LogOut, LayoutDashboard, Settings, User as UserIcon, MessageSquare, Copy, Check } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { toast } from 'sonner';
@@ -18,6 +19,22 @@ export default function DashboardPage() {
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const activeTenantId = (user?.app_metadata?.tenant_id as string) || 'a0000000-0000-0000-0000-000000000001';
+
+  useEffect(() => {
+    if (activeTenantId) {
+      apiClient.setTenantId(activeTenantId);
+    }
+  }, [activeTenantId]);
+
+  const handleCopyTenantId = () => {
+    navigator.clipboard.writeText(activeTenantId);
+    setCopied(true);
+    toast.success("Tenant ID copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleNotImplemented = (feature: string) => {
     toast.info(`${feature} feature coming soon!`, {
@@ -85,7 +102,7 @@ export default function DashboardPage() {
       {/* Conversation Sidebar */}
       <aside className="w-80 border-r border-white/10 flex flex-col">
           <ConversationList 
-            tenantId={user?.app_metadata?.tenant_id as string || 'a0000000-0000-0000-0000-000000000001'}
+            tenantId={activeTenantId}
             agentId={user?.id} 
             onSelectConversation={setSelectedConversationId}
             selectedId={selectedConversationId || undefined}
@@ -104,6 +121,16 @@ export default function DashboardPage() {
                 Live
               </span>
             )}
+            <div 
+              onClick={handleCopyTenantId}
+              className="ml-4 flex items-center gap-2 px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full cursor-pointer transition-all group"
+              title="Click to copy Tenant ID"
+            >
+              <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px]">
+                ID: {activeTenantId}
+              </span>
+              {copied ? <Check size={10} className="text-green-500" /> : <Copy size={10} className="text-muted-foreground group-hover:text-primary transition-colors" />}
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
@@ -120,7 +147,7 @@ export default function DashboardPage() {
           {selectedConversationId ? (
             <div className="h-full max-w-5xl mx-auto">
               <ChatWindow 
-                tenantId={user.app_metadata?.tenant_id as string || 'a0000000-0000-0000-0000-000000000001'} 
+                tenantId={activeTenantId} 
                 conversationId={selectedConversationId || undefined} 
                 agentId={user.id} 
                 senderType="agent" 

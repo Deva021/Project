@@ -39,6 +39,12 @@ export interface Message {
 
 
 class ApiClient {
+  private tenantId: string | null = null;
+
+  public setTenantId(id: string | null) {
+    this.tenantId = id;
+  }
+
   private async fetchWithAuth<T>( // Add generic type T
     endpoint: string,
     options: RequestInit = {}
@@ -53,9 +59,10 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${session.access_token}`;
     }
 
-    // Add X-Tenant-ID if available in options (passed from specific methods)
-    if ((options as any).tenantId) {
-      headers['X-Tenant-ID'] = (options as any).tenantId;
+    // Add X-Tenant-ID if available in options or set globally
+    const tenantIdToUse = (options as any).tenantId || this.tenantId;
+    if (tenantIdToUse) {
+      headers['X-Tenant-ID'] = tenantIdToUse;
     }
 
     try {
@@ -126,7 +133,11 @@ class ApiClient {
   }
 
   public async listConversations(tenantId: string): Promise<ApiResponse<Conversation[]>> {
-    return this.get(`/api/conversations?tenantId=${tenantId}`);
+    return this.fetchWithAuth(`/api/conversations?tenantId=${tenantId}`, {
+      method: 'GET',
+      // @ts-ignore - passing custom property to fetchWithAuth
+      tenantId: tenantId
+    });
   }
 
   public async createConversation(
